@@ -1,7 +1,7 @@
 import type { Handler } from "@netlify/functions";
 
-import { ANALYZE_PROMPT } from "./analyze-prompt";
-import { extractWordText, isWordMimeType } from "./extract-document-text";
+import { ANALYZE_PROMPT } from "../../src/lib/analyze-prompt";
+import { extractWordText, isWordMimeType } from "../../src/lib/extract-document-text";
 
 const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-1.5-flash"] as const;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;

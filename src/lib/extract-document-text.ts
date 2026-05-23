@@ -6,14 +6,6 @@ export const WORD_MIME_TYPES = new Set([
   "application/msword",
 ]);
 
-export const BINARY_MIME_TYPES = new Set([
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  ...WORD_MIME_TYPES,
-]);
-
 export function isWordMimeType(mimeType: string) {
   return WORD_MIME_TYPES.has(mimeType);
 }
