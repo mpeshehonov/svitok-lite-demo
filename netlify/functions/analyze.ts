@@ -1,12 +1,20 @@
 import type { Handler } from "@netlify/functions";
 
 import { ANALYZE_PROMPT } from "./analyze-prompt";
+import { extractWordText, isWordMimeType } from "./extract-document-text";
 
 const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-1.5-flash"] as const;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const MAX_ATTEMPTS_PER_MODEL = 2;
 const RETRY_DELAY_MS = 1500;
-const ALLOWED_MIME_TYPES = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
+const ALLOWED_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword",
+]);
 
 interface AnalyzeRequestBody {
   fileBase64?: string;
@@ -22,6 +30,8 @@ interface GeminiResponse {
   }>;
   error?: { message?: string };
 }
+
+type GeminiContentPart = { text: string } | { inline_data: { mime_type: string; data: string } };
 
 const headers = {
   "Content-Type": "application/json",
@@ -66,6 +76,10 @@ function formatUserError(message: string) {
     return "Исчерпана квота API. Попробуйте позже или используйте готовые примеры.";
   }
 
+  if (lower.includes("extract") || lower.includes("word")) {
+    return "Не удалось прочитать Word-документ. Попробуйте сохранить файл как .docx или экспортировать в PDF.";
+  }
+
   return message;
 }
 
@@ -88,11 +102,42 @@ function sanitizeAnalysis(raw: unknown, fileName: string) {
   };
 }
 
+async function buildGeminiParts(
+  mimeType: string,
+  fileBase64: string,
+  fileName: string
+): Promise<GeminiContentPart[]> {
+  const parts: GeminiContentPart[] = [{ text: ANALYZE_PROMPT }];
+
+  if (isWordMimeType(mimeType)) {
+    const buffer = Buffer.from(fileBase64, "base64");
+    const extractedText = await extractWordText(buffer, mimeType);
+
+    if (!extractedText) {
+      throw new Error("Word document is empty or unreadable");
+    }
+
+    parts.push({
+      text: `Текст Word-документа "${fileName}":\n\n${extractedText}`,
+    });
+
+    return parts;
+  }
+
+  parts.push({
+    inline_data: {
+      mime_type: mimeType,
+      data: fileBase64,
+    },
+  });
+
+  return parts;
+}
+
 async function callGemini(
   apiKey: string,
   model: (typeof GEMINI_MODELS)[number],
-  mimeType: string,
-  fileBase64: string
+  parts: GeminiContentPart[]
 ) {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -100,19 +145,7 @@ async function callGemini(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: ANALYZE_PROMPT },
-              {
-                inline_data: {
-                  mime_type: mimeType,
-                  data: fileBase64,
-                },
-              },
-            ],
-          },
-        ],
+        contents: [{ parts }],
         generationConfig: {
           responseMimeType: "application/json",
           temperature: 0.2,
@@ -154,7 +187,9 @@ export const handler: Handler = async (event) => {
   }
 
   if (!ALLOWED_MIME_TYPES.has(mimeType)) {
-    return jsonResponse(400, { error: "Unsupported file type. Use PDF, JPG, PNG or WebP." });
+    return jsonResponse(400, {
+      error: "Unsupported file type. Use PDF, Word (.doc, .docx), JPG, PNG or WebP.",
+    });
   }
 
   const fileSizeBytes = Math.ceil((fileBase64.length * 3) / 4);
@@ -163,6 +198,7 @@ export const handler: Handler = async (event) => {
   }
 
   try {
+    const parts = await buildGeminiParts(mimeType, fileBase64, fileName);
     let lastError = "Gemini API request failed";
 
     for (const model of GEMINI_MODELS) {
@@ -171,7 +207,7 @@ export const handler: Handler = async (event) => {
           await sleep(RETRY_DELAY_MS);
         }
 
-        const { response, data } = await callGemini(apiKey, model, mimeType, fileBase64);
+        const { response, data } = await callGemini(apiKey, model, parts);
 
         if (!response.ok) {
           lastError = data.error?.message ?? `Gemini API request failed (${model})`;

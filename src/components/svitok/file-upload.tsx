@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { validateUploadFile } from "@/lib/upload";
+import { ACCEPTED_FILE_EXTENSIONS, ACCEPTED_MIME_TYPES, validateUploadFile } from "@/lib/upload";
 
 interface FileUploadProps {
   disabled?: boolean;
@@ -62,7 +62,7 @@ export function FileUpload({ disabled = false, onUpload }: FileUploadProps) {
           <Upload className="size-6" />
         </div>
         <p className="text-sm font-medium text-svitok-text">Загрузите свой документ</p>
-        <p className="mt-1 text-sm text-svitok-muted">PDF, JPG, PNG или WebP · до 10 МБ</p>
+        <p className="mt-1 text-sm text-svitok-muted">PDF, Word (.doc, .docx), JPG, PNG, WebP · до 10 МБ</p>
         <Button
           type="button"
           variant="outline"
@@ -75,7 +75,7 @@ export function FileUpload({ disabled = false, onUpload }: FileUploadProps) {
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+          accept={`${ACCEPTED_FILE_EXTENSIONS},${ACCEPTED_MIME_TYPES}`}
           className="hidden"
           onChange={(event) => {
             handleFile(event.target.files?.[0]);
