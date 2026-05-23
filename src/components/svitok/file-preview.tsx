@@ -3,13 +3,19 @@
 import { FileText } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { formatFileSize, formatMimeType } from "@/lib/upload";
 import type { DocumentExample } from "@/types/document";
 
 interface FilePreviewProps {
   document: DocumentExample;
+  fileSize?: number;
+  mimeType?: string;
 }
 
-export function FilePreview({ document }: FilePreviewProps) {
+export function FilePreview({ document, fileSize, mimeType }: FilePreviewProps) {
+  const typeLabel = mimeType ? formatMimeType(mimeType) : "PDF";
+  const sizeLabel = fileSize ? formatFileSize(fileSize) : "—";
+
   return (
     <Card className="border-svitok-border bg-svitok-card py-0 shadow-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
       <CardContent className="flex items-center gap-4 p-5">
@@ -21,7 +27,9 @@ export function FilePreview({ document }: FilePreviewProps) {
             Загруженный файл
           </p>
           <p className="truncate text-sm font-semibold text-svitok-text">{document.fileName}</p>
-          <p className="text-sm text-svitok-muted">{document.pages} стр. · PDF · 1,2 МБ</p>
+          <p className="text-sm text-svitok-muted">
+            {document.pages} стр. · {typeLabel} · {sizeLabel}
+          </p>
         </div>
       </CardContent>
     </Card>

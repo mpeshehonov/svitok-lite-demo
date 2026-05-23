@@ -1,12 +1,15 @@
 import type { DocumentExample } from "@/types/document";
 
-export const LOADING_STEPS = [
+export const PROCESSING_STEPS = [
   "Определяю тип документа...",
   "Читаю реквизиты...",
   "Проверяю ИНН и КПП...",
   "Анализирую позиции...",
-  "Готово",
 ] as const;
+
+export const DONE_STEP = "Готово";
+
+export const LOADING_STEPS = [...PROCESSING_STEPS, DONE_STEP] as const;
 
 export const documents: DocumentExample[] = [
   {

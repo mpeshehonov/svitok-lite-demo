@@ -1,3 +1,17 @@
 [build]
   command = "npm run build"
   publish = "out"
+
+[dev]
+  command = "npm run dev"
+  targetPort = 3000
+  port = 8888
+  publish = "out"
+
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/analyze"
+  to = "/.netlify/functions/analyze"
+  status = 200

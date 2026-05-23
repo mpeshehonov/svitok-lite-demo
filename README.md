@@ -12,16 +12,27 @@
 - React 19 + TypeScript
 - Tailwind CSS v4 + shadcn/ui
 - framer-motion
+- Netlify Functions + Google Gemini 2.0 Flash
 - ESLint + eslint-plugin-prettier (конфиг Prettier внутри ESLint)
 
 ## Запуск
 
 ```bash
 npm install
-npm run dev
+cp .env.example .env
+# вставь GEMINI_API_KEY в .env
+npm run dev:netlify
 ```
 
-Откройте [http://localhost:3000](http://localhost:3000).
+Откройте [http://localhost:8888](http://localhost:8888).
+
+`npm run dev` запускает только фронт — загрузка своих документов работает через `dev:netlify`, потому что API живёт в Netlify Function.
+
+## Переменные окружения
+
+| Переменная | Где | Описание |
+|---|---|---|
+| `GEMINI_API_KEY` | `.env` локально, Netlify env в проде | Ключ из [Google AI Studio](https://aistudio.google.com/apikey) |
 
 ## Сборка
 
@@ -29,7 +40,7 @@ npm run dev
 npm run build
 ```
 
-Статический экспорт попадает в папку `out/` — готово для Netlify (`publish = "out"` в `netlify.toml`).
+Статический экспорт попадает в папку `out/`. Netlify собирает сайт и функцию `analyze` из `netlify/functions/`.
 
 ## Линт и форматирование
 
@@ -37,3 +48,10 @@ npm run build
 npm run lint
 npm run lint:fix
 ```
+
+## Загрузка документов
+
+- Поддерживаются PDF, JPG, PNG, WebP до 10 МБ
+- Файл отправляется в Netlify Function → Gemini API
+- Ключ хранится только на сервере, не во фронте
+- Hardcoded-примеры продолжают работать без API

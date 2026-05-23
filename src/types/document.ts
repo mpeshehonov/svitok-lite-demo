@@ -36,4 +36,4 @@ export interface DocumentExample {
   actions: DocumentAction[];
 }
 
-export type DemoPhase = "idle" | "loading" | "result";
+export type DemoPhase = "idle" | "loading" | "result" | "error";
